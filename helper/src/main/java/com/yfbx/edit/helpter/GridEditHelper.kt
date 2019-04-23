@@ -9,40 +9,33 @@ import android.widget.EditText
  * @Author Edward
  * @Date 2019/4/13 0013
  * @Description:密码格
+ *
  */
-class GridEditHelper {
+class GridEditHelper(private val views: Array<EditText>, private val listener: (String) -> Unit) {
 
 
-    private lateinit var listener: (String) -> Unit
-    private lateinit var views: Array<EditText>
-    private val buffer = StringBuilder()
+    private val NULL = 'N'
+    private val array = CharArray(views.size)
 
 
-    fun addViews(views: Array<EditText>): GridEditHelper {
-        this.views = views
-
-        views.forEach {
-            onKeyListener(it)
-            afterTextChanged(it)
-            onFocusChange(it)
+    init {
+        for (i in 0 until views.size) {
+            array[i] = NULL
+            onKeyListener(i)
+            afterTextChanged(i)
+            onFocusChange(i)
         }
 
-        return this
-    }
-
-
-    fun onInputResult(listener: (String) -> Unit) {
-        this.listener = listener
     }
 
 
     /**
      * OnKeyListener
      */
-    private fun onKeyListener(view: EditText) {
-        view.setOnKeyListener { v, keyCode, event ->
+    private fun onKeyListener(position: Int) {
+        views[position].setOnKeyListener { v, keyCode, event ->
             if (keyCode == KeyEvent.KEYCODE_DEL && event.action == KeyEvent.ACTION_UP) {
-                focusOnPre(view)
+                focusOnPre(position)
             }
             return@setOnKeyListener false
         }
@@ -52,10 +45,12 @@ class GridEditHelper {
     /**
      * OnFocusChange
      */
-    private fun onFocusChange(view: EditText) {
+    private fun onFocusChange(position: Int) {
+        val view = views[position]
         view.setOnFocusChangeListener { v, hasFocus ->
             if (hasFocus) {
                 view.text.clear()
+                array[position] = NULL
             }
         }
     }
@@ -64,8 +59,8 @@ class GridEditHelper {
     /**
      * AfterTextChanged
      */
-    private fun afterTextChanged(view: EditText) {
-        view.addTextChangedListener(object : TextWatcher {
+    private fun afterTextChanged(position: Int) {
+        views[position].addTextChangedListener(object : TextWatcher {
 
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {
             }
@@ -75,10 +70,11 @@ class GridEditHelper {
 
             override fun afterTextChanged(it: Editable?) {
                 if (it != null && it.isNotEmpty()) {
-                    focusOnNext(view)
-                    buffer.append(it)
-                    if (buffer.length == views.size) {
-                        listener.invoke(buffer.toString())
+                    focusOnNext(position)
+                    array[position] = it[0]
+                    val result = String(array)
+                    if (result.length == views.size && !result.contains(NULL)) {
+                        listener.invoke(result)
                     }
                 }
             }
@@ -89,34 +85,23 @@ class GridEditHelper {
     /**
      * 下一个获得焦点
      */
-    private fun focusOnNext(view: EditText) {
-        val index = views.indexOf(view)
-        if (index in 0 until views.size - 1) {
-            views[index + 1].requestFocus()
+    private fun focusOnNext(position: Int) {
+        if (position in 0 until views.size - 1) {
+            views[position + 1].requestFocus()
         }
     }
 
     /**
      * 上一个获得焦点
      */
-    private fun focusOnPre(view: EditText) {
-        val index = views.indexOf(view)
-        //删除最后一格，焦点在最后一格
-        if (index == views.size - 1 && buffer.length == views.size) {
-            buffer.deleteCharAt(index)
+    private fun focusOnPre(position: Int) {
+        if (array[position] != NULL) {
+            array[position] = NULL
             return
         }
 
-        //焦点在最后一格，删除，焦点前移一格
-        if (index == views.size - 1 && buffer.length == views.size - 1) {
-            buffer.deleteCharAt(index - 1)
-            views[index - 1].requestFocus()
-            return
-        }
-
-        if (index in 1 until views.size - 1) {
-            buffer.deleteCharAt(index - 1)
-            views[index - 1].requestFocus()
+        if (array[position] == NULL && position > 0) {
+            views[position - 1].requestFocus()
         }
     }
 

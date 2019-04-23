@@ -15,8 +15,7 @@ class MainActivity : AppCompatActivity() {
 
         val list = arrayOf(codeTxt1, codeTxt2, codeTxt3, codeTxt4, codeTxt5, codeTxt6)
 
-        GridEditHelper().addViews(list).onInputResult {
-
+        GridEditHelper(list) {
             Toast.makeText(this, it, Toast.LENGTH_LONG).show()
         }
 
